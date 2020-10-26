@@ -1,70 +1,43 @@
-import React from 'react';
-import {
-  Grid,
-  Card as MUICard,
-  // Input as MUIInput,
-  Paper as MUIPaper,
-  Button,
-  TextField as MUITextField,
-} from '@material-ui/core';
-import styled from 'styled-components';
-import { theme, ThemeProps } from '../../theme';
-
-type ThemeType = {
-  theme: ThemeProps;
-};
-const Wrapper = styled.div.attrs(({ theme }: ThemeType) => {
-  return {
-    style: {
-      backgroundColor: theme.secondary,
-    },
-  };
-})`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-grow: 1;
-  width: 100%;
-  height: 100%;
-`;
-const Paper = styled(MUIPaper).attrs(({ theme }: ThemeType) => {
-  return {
-    style: {
-      backgroundColor: theme.primary,
-    },
-  };
-})`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-const Card = styled(MUICard).attrs(({ theme }: ThemeType) => {
-  return {
-    style: {
-      backgroundColor: theme.secondary,
-    },
-  };
-})`
-  display: flex;
-  flex-direction: column;
-  width: 400px;
-  padding: 20px;
-  margin: 20px;
-`;
-const TextField = styled(MUITextField).attrs(({ theme }: ThemeType) => {
-  return {
-    style: {
-      backgroundColor: theme.primary,
-    },
-  };
-})`
-  margin-bottom: 2px;
-`;
-const Title = styled.h3`
-  margin: 0 0 20px 0;
-`;
+import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { Grid, Button } from '@material-ui/core';
+import { Wrapper, Paper, Card, Title, TextField, Alert } from './styles';
+import { theme } from '../../theme';
+import { TPlayer } from '../../../types/players';
+import { savePlayers } from '../../../store/playersSlice';
 
 export default function Home(): JSX.Element {
+  const dispatch = useDispatch();
+  const [allyPlayers, setAllyPlayers] = useState('' as string);
+  const [enemyPlayers, setEnemyPlayers] = useState('' as string);
+  const [error, setError] = useState('' as string);
+
+  const onScoutClick = async () => {
+    const alliesIGNs = allyPlayers.split(',').map(player => player.trim());
+    const enemiesIGNs = enemyPlayers.split(',').map(player => player.trim());
+    const body = {
+      allies: alliesIGNs,
+      enemies: enemiesIGNs,
+    };
+    const response = await fetch('http://localhost:8123/api/players/scout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!response?.ok) {
+      setError('Something went wrong.');
+    }
+    const players = await response.json();
+    const allies = players.filter(
+      (player: TPlayer) => player.allignment === 'ally',
+    );
+    const enemies = players.filter(
+      (player: TPlayer) => player.allignment === 'enemy',
+    );
+    dispatch(savePlayers({ allies, enemies }));
+  };
   return (
     <Wrapper theme={theme.light}>
       <Paper theme={theme.light}>
@@ -79,6 +52,9 @@ export default function Home(): JSX.Element {
                 multiline
                 rows={4}
                 variant="outlined"
+                value={allyPlayers}
+                onChange={event => setAllyPlayers(event.target.value)}
+                error={allyPlayers.length === 0}
               />
             </Card>
           </Grid>
@@ -92,6 +68,9 @@ export default function Home(): JSX.Element {
                 multiline
                 rows={4}
                 variant="outlined"
+                value={enemyPlayers}
+                onChange={event => setEnemyPlayers(event.target.value)}
+                error={enemyPlayers.length === 0}
               />
             </Card>
           </Grid>
@@ -99,9 +78,12 @@ export default function Home(): JSX.Element {
         <Button
           color="primary"
           variant="contained"
-          style={{ marginBottom: '20px' }}>
+          style={{ marginBottom: '20px' }}
+          onClick={onScoutClick}
+          disabled={allyPlayers.length === 0 || enemyPlayers.length === 0}>
           Scout
         </Button>
+        {error && <Alert severity="error">{error}</Alert>}
       </Paper>
     </Wrapper>
   );
