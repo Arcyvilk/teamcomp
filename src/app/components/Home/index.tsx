@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { useHistory } from 'react-router-dom';
 import { Grid, Button } from '@material-ui/core';
 import { Wrapper, Paper, Card, Title, TextField, Alert } from './styles';
 import { theme } from '../../theme';
@@ -8,6 +9,7 @@ import { savePlayers } from '../../../store/playersSlice';
 
 export default function Home(): JSX.Element {
   const dispatch = useDispatch();
+  const history = useHistory();
   const [allyPlayers, setAllyPlayers] = useState('' as string);
   const [enemyPlayers, setEnemyPlayers] = useState('' as string);
   const [error, setError] = useState('' as string);
@@ -37,6 +39,7 @@ export default function Home(): JSX.Element {
       (player: TPlayer) => player.allignment === 'enemy',
     );
     dispatch(savePlayers({ allies, enemies }));
+    history.push('/matchup');
   };
   return (
     <Wrapper theme={theme.light}>
